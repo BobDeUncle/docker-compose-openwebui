@@ -1,0 +1,45 @@
+version: '3'
+services:
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:cuda
+    container_name: openwebui
+    ports:
+      - "8181:8080"
+    environment:
+      - OLLAMA_API_BASE_URL=http://ollama:11434
+    volumes:
+      - open-webui:/app/backend/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - llm-network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.scope=webui-scope"
+      
+  watchtower-webui:
+    image: containrrr/watchtower
+    container_name: watchtower-webui
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=900  # Check every 15 minutes
+      - WATCHTOWER_SCOPE=webui-scope
+    restart: always
+    networks:
+      - llm-network
+
+networks:
+  llm-network:
+    name: llm-network-compose
+    external: true
+
+volumes:
+  open-webui:
